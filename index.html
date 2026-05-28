@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Random Sederhana</title>
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 500px; margin: 50px auto; text-align: center;">
+    <h2>Aplikasi Chat Random 🌐</h2>
+    <button id="startBtn" onclick="startChat()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Mulai Chat</button>
+    
+    <div id="chatBox" style="display:none; margin-top:20px;">
+        <div id="messages" style="border:1px solid #ccc; height:300px; overflow-y:auto; padding:10px; text-align: left; background: #f9f9f9;"></div>
+        <div style="margin-top: 10px;">
+            <input type="text" id="messageInput" placeholder="Ketik pesan..." style="width: 70%; padding: 8px;">
+            <button onclick="sendMessage()" style="padding: 8px 15px;">Kirim</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        let currentRoom = null;
+
+        function startChat() {
+            document.getElementById('startBtn').innerText = "Mencari teman obrolan...";
+            socket.emit('find_partner');
+        }
+
+        socket.on('waiting', (msg) => {
+            alert(msg);
+        });
+
+        socket.on('chat_started', (roomName) => {
+            currentRoom = roomName;
+            document.getElementById('startBtn').style.display = "none";
+            document.getElementById('chatBox').style.display = "block";
+            appendMessage("Sistem", "Kamu telah terhubung dengan orang asing!");
+        });
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            if (input.value.trim() !== "") {
+                appendMessage("Kamu", input.value);
+                socket.emit('send_message', { text: input.value });
+                input.value = "";
+            }
+        }
+
+        socket.on('receive_message', (data) => {
+            appendMessage("Orang Asing", data.text);
+        });
+
+        socket.on('partner_disconnected', () => {
+            appendMessage("Sistem", "Teman obrolanmu telah keluar.");
+            document.getElementById('chatBox').style.display = "none";
+            document.getElementById('startBtn').style.display = "block";
+            document.getElementById('startBtn').innerText = "Cari Orang Baru";
+        });
+
+        function appendMessage(sender, text) {
+            const msgDiv = document.getElementById('messages');
+            msgDiv.innerHTML += `<p><b>${sender}:</b> ${text}</p>`;
+            msgDiv.scrollTop = msgDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
